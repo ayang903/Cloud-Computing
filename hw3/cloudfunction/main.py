@@ -23,12 +23,13 @@ def get_file2(request):
         return 'Not implemented', 501
 
     file_name = request.args.get('file_name')
-    country = request.args.get('country')
+    # country = request.args.get('country') # Just used for testing. To easily test banned countries i just passed it in as an arg
 
-    # ip_address = request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
-    # response = requests.get(f"https://ipapi.co/{ip_address}/json/")
-    # country = response.json().get("country_name")
-    logger.log_text(f"THIS IS THE COUNTRY: {country}", severity="WARNING")
+    ip_address = request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
+    response = requests.get(f"https://ipapi.co/{ip_address}/json/")
+    country = response.json().get("country_name")
+
+    logger.log_text(f"THIS IS THE COUNTRY: {str(country)}", severity="WARNING")
 
 
     if str(country).lower() in ["north korea", "iran", "cuba", "myanmar", "iraq", "libya", "sudan", "zimbabwe", "syria"]:
