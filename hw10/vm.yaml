@@ -1,0 +1,113 @@
+resources:
+- type: pubsub.v1.topic
+  name: hw10-topic
+  properties:
+    topic: hw10
+    
+- type: pubsub.v1.subscription
+  name: hw10-subscription
+  properties:
+    topic: $(ref.hw10-topic.name)
+    subscription: hw10-subscription
+    ackDeadlineSeconds: 10
+
+- type: sqladmin.v1beta4.instance
+  name: hw10-instance
+  properties:
+    name: hw10-instance
+    region: us-central1
+    databaseVersion: MYSQL_8_0
+    settings:
+      tier: db-n1-standard-1
+      backupConfiguration:
+        enabled: true
+        startTime: "07:00"
+      ipConfiguration:
+        ipv4Enabled: true
+      userLabels:
+        environment: development
+    instanceType: CLOUD_SQL_INSTANCE
+    project: cloudcomputing-398719
+    rootPassword: pewdiepie3
+
+- type: sqladmin.v1beta4.database
+  name: requests
+  properties:
+    name: requests
+    instance: $(ref.hw10-instance.name)
+    project: cloudcomputing-398719
+
+- type: compute.v1.instance
+  name: ayang903-deployment-vm
+  properties:
+    zone: us-central1-f
+    machineType: https://www.googleapis.com/compute/v1/projects/cloudcomputing-398719/zones/us-central1-f/machineTypes/e2-micro
+    metadata: 
+      items:
+      - key: startup-script
+        value: |
+          #!/bin/bash
+          sudo apt-get update >> /var/log/startup_log.txt 2>&1
+          sudo apt-get install -y python3-pip >> /var/log/startup_log.txt 2>&1
+          sudo pip3 install flask google-cloud-storage google-cloud-logging google-cloud-pubsub sqlalchemy "cloud-sql-python-connector[pymysql]" >> /var/log/startup_log.txt 2>&1
+
+          gsutil cp gs://hw10-app/app.py /home/andyyang903/app.py >> /var/log/startup_log.txt 2>&1
+          
+          cd /home/andyyang903
+          python3 app.py >> /var/log/startup_log.txt 2>&1
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-11
+    networkInterfaces:
+    - network: https://www.googleapis.com/compute/v1/projects/cloudcomputing-398719/global/networks/default
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+    serviceAccounts:
+      - email: 845338334705-compute@developer.gserviceaccount.com
+        scopes:
+          - https://www.googleapis.com/auth/devstorage.read_write
+          - https://www.googleapis.com/auth/logging.write
+          - https://www.googleapis.com/auth/pubsub
+          - https://www.googleapis.com/auth/sqlservice.admin
+
+- type: compute.v1.instance
+  name: ayang903-subscriber-instance
+  properties:
+    zone: us-central1-f
+    machineType: https://www.googleapis.com/compute/v1/projects/cloudcomputing-398719/zones/us-central1-f/machineTypes/e2-micro
+    metadata: 
+      items:
+      - key: startup-script
+        value: |
+          #!/bin/bash
+          sudo apt-get update >> /var/log/startup_log.txt 2>&1
+          sudo apt-get install -y python3-pip >> /var/log/startup_log.txt 2>&1
+          sudo pip3 install google-cloud-pubsub google-cloud-logging >> /var/log/startup_log.txt 2>&1
+
+          gsutil cp gs://hw10-app/secondapp.py /home/andyyang903/secondapp.py >> /var/log/startup_log.txt 2>&1
+          
+          cd /home/andyyang903
+          python3 secondapp.py >> /var/log/startup_log.txt 2>&1
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/family/debian-11
+    networkInterfaces:
+    - network: https://www.googleapis.com/compute/v1/projects/cloudcomputing-398719/global/networks/default
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT
+    serviceAccounts:
+      - email: 845338334705-compute@developer.gserviceaccount.com
+        scopes:
+          - https://www.googleapis.com/auth/devstorage.read_write
+          - https://www.googleapis.com/auth/logging.write
+          - https://www.googleapis.com/auth/pubsub
